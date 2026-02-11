@@ -27,6 +27,14 @@ go.work.sum
 # env file
 .env
 
+# Build artifacts
+bin/
+
+# macOS
+.DS_Store
+
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+*.swp
+*.swo
