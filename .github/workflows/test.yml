@@ -1,0 +1,61 @@
+name: 🧪 Unit Tests & Coverage
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+      
+      - name: Run unit tests with coverage
+        run: |
+          go test -v -coverprofile=coverage.out ./...
+      
+      - name: Check coverage percentage
+        run: |
+          coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Code coverage: ${coverage}%"
+          
+          if (( $(echo "$coverage < 5" | bc -l) )); then
+            echo "❌ Coverage is ${coverage}% - Below 5% threshold"
+            exit 1
+          else
+            echo "✅ Coverage is ${coverage}% - Meets 5% threshold"
+          fi
+      
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage.out
+      
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = require('child_process')
+              .execSync('go tool cover -func=coverage.out | grep total')
+              .toString()
+              .split(/\s+/)[2];
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `📊 **Code Coverage Report**\n\nCurrent coverage: **${coverage}**\n\n✅ Minimum required: **60%**`
+            });
