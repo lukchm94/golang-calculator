@@ -12,5 +12,8 @@ func NewHealthService() *HealthService {
 // `domain.HealthStatus`. Inside the function, it calls the `HealthCheck` function from the `domain`
 // package to perform a health check and return the result.
 func (s *HealthService) CheckHealth() domain.HealthStatus {
-	return domain.HealthCheck()
+	healthStatus := domain.HealthCheck()
+
+	println("Health check performed, status:", healthStatus.Status)
+	return healthStatus
 }
