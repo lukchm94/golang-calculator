@@ -28,11 +28,11 @@ jobs:
           coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
           echo "Code coverage: ${coverage}%"
           
-          if (( $(echo "$coverage < 1" | bc -l) )); then
-            echo "❌ Coverage is ${coverage}% - Below 1% threshold"
+          if (( $(echo "$coverage < 40" | bc -l) )); then
+            echo "❌ Coverage is ${coverage}% - Below 40% threshold"
             exit 1
           else
-            echo "✅ Coverage is ${coverage}% - Meets 1% threshold"
+            echo "✅ Coverage is ${coverage}% - Meets 40% threshold"
           fi
       
       - name: Upload coverage report
