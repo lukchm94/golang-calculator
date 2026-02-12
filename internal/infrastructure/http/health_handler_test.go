@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"app/internal/application"
-	"app/internal/domain"
+	domain "app/internal/domain/health"
 )
 
 func TestHealthHandler(t *testing.T) {

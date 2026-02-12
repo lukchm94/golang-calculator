@@ -4,9 +4,10 @@ import (
 	"net/http"
 )
 
-func NewRouter(healthHandler *HealthHandler) http.Handler {
+func NewRouter(healthHandler *HealthHandler, calculatorHandler *CalculatorHandler) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle(string(HealthRoute), healthHandler)
+	mux.Handle(string(CalculateRoute), calculatorHandler)
 
 	return mux
 }

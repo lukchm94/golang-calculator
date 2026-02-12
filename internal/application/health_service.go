@@ -1,6 +1,6 @@
 package application
 
-import "app/internal/domain"
+import domain "app/internal/domain/health"
 
 type HealthService struct{}
 
