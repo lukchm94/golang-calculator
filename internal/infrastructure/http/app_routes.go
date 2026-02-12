@@ -3,5 +3,6 @@ package httpInfra
 type AppRoutes string
 
 const (
-	HealthRoute AppRoutes = "/health"
+	HealthRoute    AppRoutes = "/health"
+	CalculateRoute AppRoutes = "/calculator"
 )

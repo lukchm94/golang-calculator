@@ -17,6 +17,9 @@ build:
 run:
 	go run ./cmd/server
 
+docker-compose:
+	docker compose -f docker-compose.localStack.yml up -d
+
 help:
 	@echo "Available commands:"
 	@echo "  make test          - Run unit tests"
