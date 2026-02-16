@@ -1,20 +1,37 @@
 package calculatorApplication
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 )
 
-func TestCalculatorService_Calculate(t *testing.T) {
-	logger := slog.Default() // Uses the standard system logger
+// MockCalculationRepository satisfies the CalculatorRepository interface
+type MockCalculationRepository struct {
+	// SaveFunc allows us to inject custom behavior for the Save method
+	SaveFunc func(ctx context.Context, input SavedCalculationInput) error
 
-	service := NewCalculatorService(logger)
+	// Called signals if the method was actually triggered
+	SaveCalled bool
+}
+
+// Save implements the interface method
+func (m *MockCalculationRepository) Save(ctx context.Context, input SavedCalculationInput) error {
+	m.SaveCalled = true
+	if m.SaveFunc != nil {
+		return m.SaveFunc(ctx, input)
+	}
+	return nil
+}
+func TestCalculatorService_Calculate(t *testing.T) {
+	logger := slog.Default()
 
 	tests := []struct {
 		name          string
 		input         ServiceInput
 		expectedValue float64
 		expectError   bool
+		mockErr       error
 	}{
 		{
 			name: "Addition",
@@ -81,14 +98,29 @@ func TestCalculatorService_Calculate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := service.Calculate(tt.input)
+			ctx := context.Background()
+
+			// Initialize the mock for this specific case
+			mockRepo := &MockCalculationRepository{
+				SaveFunc: func(ctx context.Context, input SavedCalculationInput) error {
+					return tt.mockErr
+				},
+			}
+
+			service := NewCalculatorService(logger, mockRepo)
+			result, err := service.Calculate(ctx, tt.input)
 
 			if tt.expectError && err == nil {
 				t.Errorf("Expected error, got nil")
-			} else if !tt.expectError {
-				if result.Result != tt.expectedValue {
-					t.Errorf("Expected result value to be %v, got %v", tt.expectedValue, result.Result)
-				}
+			} else if !tt.expectError && err != nil {
+				t.Errorf("Expected no error, got %v", err)
+			} else if !tt.expectError && result.Result != tt.expectedValue {
+				t.Errorf("Expected result %v, got %v", tt.expectedValue, result.Result)
+			}
+
+			// Peer Tip: Add a check to see if SaveCalculation was called on success!
+			if !tt.expectError && !mockRepo.SaveCalled {
+				t.Errorf("Expected SaveCalculation to be called, but it wasn't")
 			}
 		})
 	}

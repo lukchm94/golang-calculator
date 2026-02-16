@@ -4,6 +4,7 @@ import (
 	calculatorApplication "app/internal/application/calculator"
 	calculatorDomain "app/internal/domain/calculator"
 	reqErr "app/internal/infrastructure/http/errors"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -24,7 +25,7 @@ func NewCalculatorController(logger *slog.Logger, service *calculatorApplication
 	return &CalculatorController{logger: logger, service: service}
 }
 
-func (c *CalculatorController) Run(r *http.Request) (calculatorDomain.Result, error) {
+func (c *CalculatorController) Run(ctx context.Context, r *http.Request) (calculatorDomain.Result, error) {
 	validReq, err := c.validateReq(r)
 
 	if err != nil {
@@ -37,7 +38,7 @@ func (c *CalculatorController) Run(r *http.Request) (calculatorDomain.Result, er
 
 	c.logger.Info("Running calculation", "input", input)
 
-	result, err := c.service.Calculate(input)
+	result, err := c.service.Calculate(ctx, input)
 
 	if err == nil {
 		c.logger.Info("Calculation successful", "result", result)

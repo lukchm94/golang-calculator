@@ -1,12 +1,10 @@
 package main
 
 import (
-	"log"
-	"log/slog"
+	"fmt"
 	"net/http"
 	"os"
 
-	"app/cmd/config"
 	"app/internal/application"
 	calculatorApplication "app/internal/application/calculator"
 	httpInfra "app/internal/infrastructure/http"
@@ -14,27 +12,42 @@ import (
 )
 
 func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	app := NewApp()
 
 	// Services initialization
-	healthService := application.NewHealthService(logger)
-	calculatorService := calculatorApplication.NewCalculatorService(logger)
+	healthService := application.NewHealthService(app.Logger)
+	calculatorService := calculatorApplication.NewCalculatorService(app.Logger, app.CalcRepo)
 
 	// Controllers initialization
-	calculatorController := controllers.NewCalculatorController(logger, calculatorService)
+	calculatorController := controllers.NewCalculatorController(app.Logger, calculatorService)
 
 	// HTTP Handlers initialization
-	healthHandler := httpInfra.NewHealthHandler(logger, healthService)
-	calculatorHandler := httpInfra.NewCalculatorHandler(logger, calculatorController)
+	healthHandler := httpInfra.NewHealthHandler(app.Logger, healthService)
+	calculatorHandler := httpInfra.NewCalculatorHandler(app.Logger, calculatorController)
+
 	// Router initialization
 	router := httpInfra.NewRouter(healthHandler, calculatorHandler)
 
-	port := os.Getenv(string(config.PortEnvKey))
-	if port == string(config.EmptyString) {
-		port = string(config.DefaultPort)
-	}
+	// Consistent structured logging
+	app.Logger.Info("Server starting", "port", app.Config.Port)
 
-	log.Printf("Starting server on port %s", port)
-	log.Printf("Find the health endpoint at http://localhost:%s/health", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	addr := ":" + app.Config.Port // Result: ":8080"
+
+	app.Logger.Info("Starting server",
+		"port", app.Config.Port,
+		"health_url", fmt.Sprintf("http://localhost:%s/health", app.Config.Port),
+	)
+
+	// Start the server
+	err := http.ListenAndServe(addr, router)
+
+	addr = ":" + app.Config.Port
+
+	// ListenAndServe blocks until there is an error
+	err = http.ListenAndServe(addr, router)
+
+	if err != nil {
+		app.Logger.Error("Server failed to start", "error", err)
+		os.Exit(1)
+	}
 }

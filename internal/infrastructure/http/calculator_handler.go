@@ -27,7 +27,11 @@ func (h *CalculatorHandler) RegisterRoutes(mux *http.ServeMux) {
 func (h *CalculatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("Received calculation request", "method", r.Method, "url", r.URL.Path)
 
-	result, err := h.controller.Run(r)
+	h.logger.Debug("Checking the Session ID form header", "session-id", r.Header.Get("X-Session-ID"), "req", r)
+
+	ctx := r.Context()
+
+	result, err := h.controller.Run(ctx, r)
 
 	if err != nil {
 		h.logger.Error("Calculation failed", "error", err)
