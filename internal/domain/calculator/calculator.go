@@ -14,25 +14,25 @@ type CalculatorInput struct {
 	Number2 float64
 }
 
-type CalculationResult struct {
+type Result struct {
 	Result float64 `json:"result"`
 }
 
-func Addition(c CalculatorInput) CalculationResult {
-	return CalculationResult{Result: c.Number1 + c.Number2}
+func Addition(c CalculatorInput) Result {
+	return Result{Result: c.Number1 + c.Number2}
 }
 
-func Subtraction(c CalculatorInput) CalculationResult {
-	return CalculationResult{Result: c.Number1 - c.Number2}
+func Subtraction(c CalculatorInput) Result {
+	return Result{Result: c.Number1 - c.Number2}
 }
 
-func Multiplication(c CalculatorInput) CalculationResult {
-	return CalculationResult{Result: c.Number1 * c.Number2}
+func Multiplication(c CalculatorInput) Result {
+	return Result{Result: c.Number1 * c.Number2}
 }
 
-func Division(c CalculatorInput) (CalculationResult, error) {
+func Division(c CalculatorInput) (Result, error) {
 	if c.Number2 == 0 {
-		return CalculationResult{}, ErrDivisionByZero
+		return Result{}, ErrDivisionByZero
 	}
-	return CalculationResult{Result: c.Number1 / c.Number2}, nil
+	return Result{Result: c.Number1 / c.Number2}, nil
 }

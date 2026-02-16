@@ -17,8 +17,11 @@ build:
 run:
 	go run ./cmd/server
 
-docker-compose:
+localstack-up:
 	docker compose -f docker-compose.localStack.yml up -d
+
+localstack-down:
+	docker compose -f docker-compose.localStack.yml down
 
 help:
 	@echo "Available commands:"
@@ -27,3 +30,5 @@ help:
 	@echo "  make coverage-html - Run tests and open coverage in browser"
 	@echo "  make build         - Build the application"
 	@echo "  make run           - Run the application"
+	@echo "  make localstack-up   - Start LocalStack services"
+	@echo "  make localstack-down - Stop LocalStack services"

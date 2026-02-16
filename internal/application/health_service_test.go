@@ -1,11 +1,14 @@
 package application
 
 import (
+	"log/slog"
 	"testing"
 )
 
 func TestHealthService(t *testing.T) {
-	healthService := NewHealthService()
+	logger := slog.Default() // Uses the standard system logger
+
+	healthService := NewHealthService(logger)
 	healthStatus := healthService.CheckHealth()
 
 	if healthStatus.Status != "healthy" {
