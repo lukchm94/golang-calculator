@@ -2,6 +2,7 @@ package httpInfra
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,9 +12,11 @@ import (
 )
 
 func TestHealthHandler(t *testing.T) {
-	// Create a new instance of the HealthHandler
-	healthService := application.NewHealthService()
-	healthHandler := NewHealthHandler(healthService)
+	logger := slog.Default() // Uses the standard system logger
+
+	// Create a new instance of the HealthService
+	healthService := application.NewHealthService(logger)
+	healthHandler := NewHealthHandler(logger, healthService)
 
 	// Create a mock HTTP request
 	req := httptest.NewRequest(http.MethodGet, "http://localhost/health", nil)

@@ -19,13 +19,13 @@ func NewCalculatorService(logger *slog.Logger) *CalculatorService {
 	return &CalculatorService{logger: logger}
 }
 
-func (s *CalculatorService) Calculate(input ServiceInput) (calculatorDomain.CalculationResult, error) {
+func (s *CalculatorService) Calculate(input ServiceInput) (calculatorDomain.Result, error) {
 	s.logger.Info("Performing calculation", "number1", input.Number1, "number2", input.Number2, "operation", input.Operator)
 
 	domainInput, operation, err := s.convertToDomainInput(input)
 
 	if err != nil {
-		return calculatorDomain.CalculationResult{}, err
+		return calculatorDomain.Result{}, err
 	}
 
 	switch operation {
@@ -45,7 +45,7 @@ func (s *CalculatorService) Calculate(input ServiceInput) (calculatorDomain.Calc
 	default:
 		s.logger.Error("Invalid operation type", "operation", input.Operator)
 
-		return calculatorDomain.CalculationResult{}, calculatorDomain.ErrInvalidOperation
+		return calculatorDomain.Result{}, calculatorDomain.ErrInvalidOperation
 	}
 }
 

@@ -1,11 +1,16 @@
 package application
 
-import domain "app/internal/domain/health"
+import (
+	domain "app/internal/domain/health"
+	"log/slog"
+)
 
-type HealthService struct{}
+type HealthService struct {
+	logger *slog.Logger
+}
 
-func NewHealthService() *HealthService {
-	return &HealthService{}
+func NewHealthService(logger *slog.Logger) *HealthService {
+	return &HealthService{logger: logger}
 }
 
 // This function `CheckHealth` is a method of the `HealthService` struct. It returns a value of type
@@ -14,6 +19,6 @@ func NewHealthService() *HealthService {
 func (s *HealthService) CheckHealth() domain.HealthStatus {
 	healthStatus := domain.HealthCheck()
 
-	println("Health check performed, status:", healthStatus.Status)
+	s.logger.Info("Health check performed", "status", healthStatus.Status)
 	return healthStatus
 }

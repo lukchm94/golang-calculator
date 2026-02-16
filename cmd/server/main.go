@@ -17,15 +17,15 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Services initialization
-	healthService := application.NewHealthService()
+	healthService := application.NewHealthService(logger)
 	calculatorService := calculatorApplication.NewCalculatorService(logger)
 
 	// Controllers initialization
-	calculatorController := controllers.NewCalculatorController(logger)
+	calculatorController := controllers.NewCalculatorController(logger, calculatorService)
 
 	// HTTP Handlers initialization
-	healthHandler := httpInfra.NewHealthHandler(healthService)
-	calculatorHandler := httpInfra.NewCalculatorHandler(logger, calculatorController, calculatorService)
+	healthHandler := httpInfra.NewHealthHandler(logger, healthService)
+	calculatorHandler := httpInfra.NewCalculatorHandler(logger, calculatorController)
 	// Router initialization
 	router := httpInfra.NewRouter(healthHandler, calculatorHandler)
 

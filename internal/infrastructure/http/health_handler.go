@@ -2,17 +2,23 @@ package httpInfra
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"app/internal/application"
 )
 
 type HealthHandler struct {
+	logger        *slog.Logger
 	healthService *application.HealthService
 }
 
-func NewHealthHandler(healthService *application.HealthService) *HealthHandler {
-	return &HealthHandler{healthService: healthService}
+func NewHealthHandler(logger *slog.Logger, healthService *application.HealthService) *HealthHandler {
+	return &HealthHandler{logger: logger, healthService: healthService}
+}
+
+func (h *HealthHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.Handle(string(HealthRoute), h)
 }
 
 func (h *HealthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
