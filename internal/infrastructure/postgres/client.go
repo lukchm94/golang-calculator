@@ -4,21 +4,23 @@ import (
 	"fmt"
 	"log/slog"
 
+	postgresModels "app/internal/infrastructure/postgres/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type PostgresConfig struct {
-	host     string
-	port     string
-	user     string
-	password string
-	dbName   string
+	Host     string
+	Port     string
+	User     string
+	Password string
+	DbName   string
 }
 
 func NewGormClient(config PostgresConfig, logger *slog.Logger) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		config.host, config.user, config.password, config.dbName, config.port)
+		config.Host, config.User, config.Password, config.DbName, config.Port)
 
 	logger.Debug("Setting up Postgres DB with the following", "DSN", dsn)
 
@@ -29,4 +31,15 @@ func NewGormClient(config PostgresConfig, logger *slog.Logger) (*gorm.DB, error)
 	}
 
 	return db, nil
+}
+
+func InitPostgresTables(db *gorm.DB, logger *slog.Logger) error {
+	err := db.AutoMigrate(&postgresModels.UserPostgres{})
+
+	if err != nil {
+		logger.Error("Failed to initialize Postgres tables", "error", err)
+		return ErrPostgresTablesInit
+	}
+
+	return nil
 }

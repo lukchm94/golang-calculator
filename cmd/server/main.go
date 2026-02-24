@@ -7,6 +7,7 @@ import (
 
 	"app/internal/application"
 	calculatorApplication "app/internal/application/calculator"
+	userService "app/internal/application/user"
 	httpInfra "app/internal/infrastructure/http"
 	"app/internal/infrastructure/http/controllers"
 )
@@ -17,6 +18,8 @@ func main() {
 	// Services initialization
 	healthService := application.NewHealthService(app.Logger)
 	calculatorService := calculatorApplication.NewCalculatorService(app.Logger, app.CalcRepo)
+	userService := userService.NewUserService(app.Logger, app.UserRepo)
+	userController := controllers.NewUserController(app.Logger, userService)
 
 	// Controllers initialization
 	calculatorController := controllers.NewCalculatorController(app.Logger, calculatorService)
@@ -24,9 +27,9 @@ func main() {
 	// HTTP Handlers initialization
 	healthHandler := httpInfra.NewHealthHandler(app.Logger, healthService)
 	calculatorHandler := httpInfra.NewCalculatorHandler(app.Logger, calculatorController)
-
+	userHandler := httpInfra.NewUserHandler(app.Logger, userController)
 	// Router initialization
-	router := httpInfra.NewRouter(healthHandler, calculatorHandler)
+	router := httpInfra.NewRouter(healthHandler, calculatorHandler, userHandler)
 
 	// Consistent structured logging
 	app.Logger.Info("Server starting", "port", app.Config.Port)

@@ -10,15 +10,21 @@ import (
 	"syscall"
 
 	dynamodb "app/internal/infrastructure/dynamodb"
+	postgres "app/internal/infrastructure/postgres"
+	postgresModels "app/internal/infrastructure/postgres/models"
+	postgresRepo "app/internal/infrastructure/postgres/repo"
+
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"gorm.io/gorm"
 )
 
 type Services struct {
 	Logger   *slog.Logger
 	CalcRepo *dynamoRepo.CalculationsDynamoRepository
 	Config   config.Configs
+	UserRepo *postgresRepo.UserRepository
 }
 
 func NewApp() *Services {
@@ -45,10 +51,14 @@ func NewApp() *Services {
 		return nil
 	}
 
+	postgresClient, err := buildPostgresClient(logger, appConfig)
+
 	if err != nil {
-		logger.Error("Failed to build DynamoDB client", "error", err)
+		logger.Error("Failed to build Postgres client", "error", err)
 		return nil
 	}
+
+	userRepo := postgresRepo.NewUserRepository(postgresClient, logger)
 
 	calcRepo, err := dynamoRepo.NewCalculationsDynamoRepository(dbClient, logger, "Calculations")
 
@@ -61,6 +71,7 @@ func NewApp() *Services {
 		Logger:   logger,
 		CalcRepo: calcRepo,
 		Config:   appConfig,
+		UserRepo: userRepo,
 	}
 }
 
@@ -91,4 +102,33 @@ func buildDynamoDbClient(ctx context.Context, logger *slog.Logger, config config
 
 func dynamoTablesToRegister() []string {
 	return []string{dynamodbModels.TABLE_CALCULATIONS}
+}
+
+func buildPostgresClient(logger *slog.Logger, config config.Configs) (*gorm.DB, error) {
+	postgresConfig := postgres.PostgresConfig{
+		Host:     config.PostgresHost,
+		Port:     config.PostgresPort,
+		User:     config.PostgresUser,
+		Password: config.PostgresPassword,
+		DbName:   config.PostgresDb,
+	}
+	db, err := postgres.NewGormClient(postgresConfig, logger)
+
+	if err != nil {
+		logger.Error("Failed to build Postgres client", "error", err)
+
+		return nil, postgres.ErrPostgresInit
+
+	}
+
+	logger.Info("Initialised Postgres client", "Host", postgresConfig.Host, "Port", postgresConfig.Port, "DbName", postgresConfig.DbName)
+
+	if err := postgres.InitPostgresTables(db, logger); err != nil {
+		logger.Error("Failed to initialize Postgres tables", "error", err)
+		return nil, err
+	}
+
+	logger.Info("Initialised Postgres tables", "Tables", []string{postgresModels.UserPostgres{}.TableName()})
+
+	return db, nil
 }
