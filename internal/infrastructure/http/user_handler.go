@@ -1,7 +1,7 @@
 package httpInfra
 
 import (
-	userDomain "app/internal/domain/users"
+	userDomain "app/internal/domain/user"
 	"app/internal/infrastructure/http/controllers"
 	"encoding/json"
 	"log/slog"
@@ -24,7 +24,9 @@ func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 func (h *UserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("Received user request", "method", r.Method, "url", r.URL.Path)
 
-	result, err := h.controller.Register(r.Context(), r)
+	ctx := r.Context()
+
+	result, err := h.controller.Register(ctx, r)
 
 	if err != nil {
 		h.logger.Error("User registration failed", "error", err)
@@ -34,6 +36,8 @@ func (h *UserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
 	json.NewEncoder(w).Encode(userDomain.User{
 		ID:        result.ID,
 		FirstName: result.FirstName,

@@ -1,7 +1,7 @@
 package userService
 
 import (
-	userDomain "app/internal/domain/users"
+	userDomain "app/internal/domain/user"
 	"app/internal/utils"
 	"log/slog"
 	"strings"

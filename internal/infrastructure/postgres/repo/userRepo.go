@@ -3,7 +3,7 @@ package postgresRepo
 import (
 	"log/slog"
 
-	userDomain "app/internal/domain/users"
+	userDomain "app/internal/domain/user"
 	postgresModels "app/internal/infrastructure/postgres/models"
 
 	"github.com/google/uuid"

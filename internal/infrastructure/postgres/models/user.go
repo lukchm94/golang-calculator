@@ -1,7 +1,7 @@
 package postgresModels
 
 import (
-	userDomain "app/internal/domain/users"
+	userDomain "app/internal/domain/user"
 	"time"
 )
 
