@@ -3,6 +3,7 @@ package httpInfra
 import (
 	userDomain "app/internal/domain/user"
 	"app/internal/infrastructure/http/controllers"
+	reqErr "app/internal/infrastructure/http/errors"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -18,10 +19,41 @@ func NewUserHandler(logger *slog.Logger, controller *controllers.UserController)
 }
 
 func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.Handle(string(RegisterRoute), h)
+	mux.HandleFunc(string(RegisterRoute), h.handleRegister)
+	mux.HandleFunc(string(LoginRoute), h.handleLogin)
 }
 
-func (h *UserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		h.logInvalidMethod(r)
+
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+
+	ctx := r.Context()
+
+	res, err := h.controller.Login(ctx, r)
+
+	if err != nil {
+		h.logger.Error("User Login failed", "error", err)
+		h.handleErrors(w, err)
+
+		return
+	}
+
+	h.logger.Info("Logged in user", "user", res)
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *UserHandler) handleRegister(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		h.logInvalidMethod(r)
+
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
 	h.logger.Info("Received user request", "method", r.Method, "url", r.URL.Path)
 
 	ctx := r.Context()
@@ -35,7 +67,7 @@ func (h *UserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	h.setHeaderContentTypeApplicationJson(w)
 	w.WriteHeader(http.StatusCreated)
 
 	json.NewEncoder(w).Encode(userDomain.User{
@@ -47,6 +79,30 @@ func (h *UserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) handleErrors(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
+	h.setHeaderContentTypeApplicationJson(w)
+
+	status := http.StatusInternalServerError
+
+	switch err.(type) {
+	case reqErr.InvalidRequestError, reqErr.MissingFieldError:
+		// Invalid or incomplete request payload
+		status = http.StatusBadRequest
+	case reqErr.InvalidRequestMethodError:
+		// Wrong HTTP method used for this endpoint
+		status = http.StatusMethodNotAllowed
+	case reqErr.NotImplementedError:
+		// Functionality (e.g. login) not implemented yet
+		status = http.StatusNotImplemented
+	}
+
+	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+}
+
+func (h *UserHandler) logInvalidMethod(r *http.Request) {
+	h.logger.Error("Invalid HTTP method. Required POST and received: ", "requestMethod", r.Method)
+}
+
+func (h *UserHandler) setHeaderContentTypeApplicationJson(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
 }

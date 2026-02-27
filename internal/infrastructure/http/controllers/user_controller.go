@@ -4,11 +4,12 @@ import (
 	userService "app/internal/application/user"
 	userDomain "app/internal/domain/user"
 	reqErr "app/internal/infrastructure/http/errors"
-
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"net/mail"
 )
 
 type UserRequest struct {
@@ -16,6 +17,11 @@ type UserRequest struct {
 	LastName  *string `json:"last_name"`
 	Email     *string `json:"email"`
 	Password  *string `json:"password"`
+}
+
+type LoginRequest struct {
+	Email    *string `json:"email"`
+	Password *string `json:"password"`
 }
 
 type UserController struct {
@@ -51,6 +57,28 @@ func (c *UserController) Register(ctx context.Context, r *http.Request) (*userDo
 	return result, nil
 }
 
+func (c *UserController) Login(ctx context.Context, r *http.Request) (*userDomain.User, error) {
+	c.logger.Info("Handling Login")
+
+	var req LoginRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, reqErr.InvalidRequestError{}
+	}
+
+	if req.Email == nil {
+		return nil, reqErr.MissingFieldError{FieldName: "email"}
+	}
+
+	err := c.isValidEmail(*req.Email)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, reqErr.NotImplementedError{Details: "Login functionality"}
+}
+
 func (c *UserController) validateRegisterReq(r *http.Request) (userService.RegisterInput, error) {
 	c.logger.Info("Handling register request")
 
@@ -81,6 +109,11 @@ func (c *UserController) validateRegisterPayload(r *http.Request) (*userService.
 	if req.Email == nil {
 		return nil, reqErr.MissingFieldError{FieldName: "email"}
 	}
+	err := c.isValidEmail(*req.Email)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if req.FirstName == nil {
 		return nil, reqErr.MissingFieldError{FieldName: "firstName"}
@@ -100,4 +133,15 @@ func (c *UserController) validateRegisterPayload(r *http.Request) (*userService.
 		Email:     *req.Email,
 		Password:  *req.Password,
 	}, nil
+}
+
+func (c *UserController) isValidEmail(email string) error {
+	address, err := mail.ParseAddress(email)
+	if err != nil {
+		var errDetail = fmt.Sprintf("Invalid email: %s", email)
+		return reqErr.InvalidRequestError{Details: errDetail}
+	}
+	c.logger.Info("Validated email address", "email", address.Address)
+
+	return nil
 }

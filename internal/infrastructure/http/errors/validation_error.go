@@ -27,3 +27,11 @@ type InvalidRequestMethodError struct {
 func (e InvalidRequestMethodError) Error() string {
 	return fmt.Sprintf("invalid HTTP method: %s", e.Method)
 }
+
+type NotImplementedError struct {
+	Details string
+}
+
+func (e NotImplementedError) Error() string {
+	return fmt.Sprintf("functionality not implemented: %s", e.Details)
+}
