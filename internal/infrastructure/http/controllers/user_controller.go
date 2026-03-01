@@ -6,10 +6,12 @@ import (
 	reqErr "app/internal/infrastructure/http/errors"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/mail"
+	"strings"
 )
 
 type UserRequest struct {
@@ -75,8 +77,35 @@ func (c *UserController) Login(ctx context.Context, r *http.Request) (*userDomai
 	if err != nil {
 		return nil, err
 	}
+	loginInput := userService.LoginInput{
+		Username: strings.TrimSpace(*req.Email),
+		Password: strings.TrimSpace(*req.Password),
+	}
 
-	return nil, reqErr.NotImplementedError{Details: "Login functionality"}
+	user, err := c.service.Login(loginInput)
+
+	if err != nil {
+		c.logger.Error("Failed to login user", "error", err)
+
+		if errors.Is(err, userDomain.ErrUserNotFound) {
+			var errDetail = fmt.Sprintf("username: %s", loginInput.Username)
+
+			return nil, reqErr.UserNotFoundError{Details: errDetail}
+		}
+
+		if errors.Is(err, userDomain.ErrInvalidCredentials) {
+			var errDetail = fmt.Sprintf("invalid credentials for username: %s", loginInput.Username)
+
+			return nil, reqErr.InvalidCredentialsError{Details: errDetail}
+		}
+
+		return nil, err
+
+	}
+
+	c.logger.Info("Successfully found user", "email", user.Email, "firstName", user.FirstName, "lastName", user.LastName)
+
+	return user, nil
 }
 
 func (c *UserController) validateRegisterReq(r *http.Request) (userService.RegisterInput, error) {

@@ -44,6 +44,13 @@ func (h *UserHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("Logged in user", "user", res)
 
 	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(userDomain.User{
+		ID:        res.ID,
+		FirstName: res.FirstName,
+		LastName:  res.LastName,
+		Email:     res.Email,
+	})
 }
 
 func (h *UserHandler) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -93,6 +100,11 @@ func (h *UserHandler) handleErrors(w http.ResponseWriter, err error) {
 	case reqErr.NotImplementedError:
 		// Functionality (e.g. login) not implemented yet
 		status = http.StatusNotImplemented
+	case reqErr.UserNotFoundError:
+		status = http.StatusNotFound
+
+	case reqErr.InvalidCredentialsError:
+		status = http.StatusUnauthorized
 	}
 
 	w.WriteHeader(status)
