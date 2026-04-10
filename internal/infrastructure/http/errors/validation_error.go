@@ -27,3 +27,35 @@ type InvalidRequestMethodError struct {
 func (e InvalidRequestMethodError) Error() string {
 	return fmt.Sprintf("invalid HTTP method: %s", e.Method)
 }
+
+type NotImplementedError struct {
+	Details string
+}
+
+func (e NotImplementedError) Error() string {
+	return fmt.Sprintf("functionality not implemented: %s", e.Details)
+}
+
+type UserNotFoundError struct {
+	Details string
+}
+
+func (e UserNotFoundError) Error() string {
+	return fmt.Sprintf("user not found: %s", e.Details)
+}
+
+type InvalidCredentialsError struct {
+	Details string
+}
+
+func (e InvalidCredentialsError) Error() string {
+	return fmt.Sprintf("invalid credentials: %s", e.Details)
+}
+
+type UserAlreadyExistsError struct {
+	Details string
+}
+
+func (e UserAlreadyExistsError) Error() string {
+	return fmt.Sprintf("user already exists: %s", e.Details)
+}
