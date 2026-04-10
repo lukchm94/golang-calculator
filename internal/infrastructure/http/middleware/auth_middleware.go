@@ -10,6 +10,10 @@ import (
 	"strings"
 )
 
+type contextKey string
+
+const UserClaimsKey contextKey = "user_claims"
+
 func AuthMiddleware(logger *slog.Logger, jwtService *authService.JwtAuthService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +45,7 @@ func AuthMiddleware(logger *slog.Logger, jwtService *authService.JwtAuthService)
 			}
 
 			// Store claims in context
-			ctx := context.WithValue(r.Context(), "user_claims", claims)
+			ctx := context.WithValue(r.Context(), UserClaimsKey, claims)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -50,7 +54,7 @@ func AuthMiddleware(logger *slog.Logger, jwtService *authService.JwtAuthService)
 func AdminOnlyMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims, ok := r.Context().Value("user_claims").(*authDomain.CustomClaims)
+			claims, ok := r.Context().Value(UserClaimsKey).(*authDomain.CustomClaims)
 			if !ok {
 				logger.Error("Missing user claims in context")
 				http.Error(w, "Internal server error", http.StatusInternalServerError)

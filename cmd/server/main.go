@@ -32,7 +32,14 @@ func main() {
 	userHandler := httpInfra.NewUserHandler(app.Logger, userController)
 	// Router initialization
 	adminRouter := httpInfra.NewAdminRouter(app.Logger, jwtService)
-	router := httpInfra.NewRouter(healthHandler, calculatorHandler, userHandler, adminRouter, jwtService)
+	router := httpInfra.NewRouter(
+		healthHandler,
+		calculatorHandler,
+		userHandler,
+		adminRouter,
+		jwtService,
+		app.Logger,
+	)
 
 	// Consistent structured logging
 	app.Logger.Info("Server starting", "port", app.Config.Port)
@@ -46,8 +53,6 @@ func main() {
 
 	// Start the server
 	err := http.ListenAndServe(addr, router)
-
-	addr = ":" + app.Config.Port
 
 	if err != nil {
 		app.Logger.Error("Server failed to start", "error", err)

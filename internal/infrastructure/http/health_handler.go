@@ -4,6 +4,7 @@ import (
 	"app/internal/application"
 	userService "app/internal/application/user"
 	authDomain "app/internal/domain/auth"
+	middleware "app/internal/infrastructure/http/middleware"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -35,7 +36,7 @@ func (h *HealthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HealthHandler) HandleAdminHealth(w http.ResponseWriter, r *http.Request) {
-	claims := r.Context().Value("user_claims").(*authDomain.CustomClaims)
+	claims := r.Context().Value(middleware.UserClaimsKey).(*authDomain.CustomClaims)
 
 	user, err := h.userService.GetUserByID(claims.UserID)
 

@@ -4,7 +4,6 @@ import (
 	authService "app/internal/application/auth"
 	"log/slog"
 	"net/http"
-	"os"
 )
 
 func NewRouter(
@@ -13,10 +12,8 @@ func NewRouter(
 	userHandler *UserHandler,
 	adminRouter *AdminRouter,
 	jwtService *authService.JwtAuthService,
+	logger *slog.Logger,
 ) http.Handler {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}))
 
 	mux := http.NewServeMux()
 
