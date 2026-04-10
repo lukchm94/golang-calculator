@@ -51,3 +51,11 @@ type InvalidCredentialsError struct {
 func (e InvalidCredentialsError) Error() string {
 	return fmt.Sprintf("invalid credentials: %s", e.Details)
 }
+
+type UserAlreadyExistsError struct {
+	Details string
+}
+
+func (e UserAlreadyExistsError) Error() string {
+	return fmt.Sprintf("user already exists: %s", e.Details)
+}

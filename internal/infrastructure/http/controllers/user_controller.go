@@ -19,6 +19,7 @@ type UserRequest struct {
 	LastName  *string `json:"last_name"`
 	Email     *string `json:"email"`
 	Password  *string `json:"password"`
+	Role      *string `json:"role"`
 }
 
 type LoginRequest struct {
@@ -48,6 +49,10 @@ func (c *UserController) Register(ctx context.Context, r *http.Request) (*userDo
 
 	if err != nil {
 		c.logger.Error("Failed to register user", "error", err)
+
+		if errors.Is(err, userDomain.ErrUserAlreadyExists) {
+			return nil, reqErr.UserAlreadyExistsError{Details: validReq.Email}
+		}
 
 		return nil, err
 	}
@@ -156,11 +161,23 @@ func (c *UserController) validateRegisterPayload(r *http.Request) (*userService.
 		return nil, reqErr.MissingFieldError{FieldName: "password"}
 	}
 
+	if req.Role == nil {
+		return nil, reqErr.MissingFieldError{FieldName: "role"}
+	}
+
+	role := userDomain.Role(*req.Role)
+
+	if !role.IsValid() {
+		var errDetail = fmt.Sprintf("Invalid role: %s", *req.Role)
+		return nil, reqErr.InvalidRequestError{Details: errDetail}
+	}
+
 	return &userService.RegisterInput{
 		FirstName: *req.FirstName,
 		LastName:  *req.LastName,
 		Email:     *req.Email,
 		Password:  *req.Password,
+		Role:      *req.Role,
 	}, nil
 }
 

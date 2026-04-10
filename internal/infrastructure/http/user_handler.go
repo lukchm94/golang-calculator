@@ -50,6 +50,7 @@ func (h *UserHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		FirstName: res.FirstName,
 		LastName:  res.LastName,
 		Email:     res.Email,
+		Role:      res.Role,
 	})
 }
 
@@ -82,6 +83,7 @@ func (h *UserHandler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		FirstName: result.FirstName,
 		LastName:  result.LastName,
 		Email:     result.Email,
+		Role:      result.Role,
 	})
 }
 
@@ -102,9 +104,10 @@ func (h *UserHandler) handleErrors(w http.ResponseWriter, err error) {
 		status = http.StatusNotImplemented
 	case reqErr.UserNotFoundError:
 		status = http.StatusNotFound
-
 	case reqErr.InvalidCredentialsError:
 		status = http.StatusUnauthorized
+	case reqErr.UserAlreadyExistsError:
+		status = http.StatusConflict
 	}
 
 	w.WriteHeader(status)

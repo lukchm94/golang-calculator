@@ -6,12 +6,13 @@ import (
 )
 
 type UserPostgres struct {
-	ID             string    `gorm:"primaryKey;type:uuid"`
-	FirstName      string    `gorm:"not null"`
-	LastName       string    `gorm:"not null"`
-	Email          string    `gorm:"uniqueIndex;not null"`
-	HashedPassword string    `gorm:"not null"`
-	CreatedAt      time.Time `gorm:"autoCreateTime"`
+	ID             string          `gorm:"primaryKey;type:uuid"`
+	FirstName      string          `gorm:"not null"`
+	LastName       string          `gorm:"not null"`
+	Email          string          `gorm:"uniqueIndex;not null"`
+	Role           userDomain.Role `gorm:"type:varchar(20);not null;default:'guest'"`
+	HashedPassword string          `gorm:"not null"`
+	CreatedAt      time.Time       `gorm:"autoCreateTime"`
 }
 
 // TableName overrides the table name for GORM
@@ -26,6 +27,7 @@ func (up *UserPostgres) ToDomain() *userDomain.User {
 		FirstName:      up.FirstName,
 		LastName:       up.LastName,
 		Email:          up.Email,
+		Role:           up.Role,
 		HashedPassword: up.HashedPassword,
 		CreatedAt:      up.CreatedAt,
 	}
@@ -38,6 +40,7 @@ func FromDomain(u *userDomain.User) *UserPostgres {
 		FirstName:      u.FirstName,
 		LastName:       u.LastName,
 		Email:          u.Email,
+		Role:           u.Role,
 		HashedPassword: u.HashedPassword,
 		CreatedAt:      u.CreatedAt,
 	}

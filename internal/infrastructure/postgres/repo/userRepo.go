@@ -1,12 +1,14 @@
 package postgresRepo
 
 import (
+	"errors"
 	"log/slog"
 
 	userDomain "app/internal/domain/user"
 	postgresModels "app/internal/infrastructure/postgres/models"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -60,7 +62,18 @@ func (r *UserRepository) CreateUser(user *userDomain.User) error {
 
 	r.logger.Debug("Creating user", "user", postgresUser)
 
-	return r.db.Create(postgresUser).Error
+	if err := r.db.Create(postgresUser).Error; err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			r.logger.Info("User with email already exists", "email", user.Email)
+			return userDomain.ErrUserAlreadyExists
+		}
+
+		r.logger.Error("Failed to create user", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 func (r *UserRepository) GenerateUserID() string {

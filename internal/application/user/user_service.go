@@ -21,12 +21,23 @@ func NewUserService(logger *slog.Logger, repo userDomain.UserRepository) *UserSe
 
 func (s *UserService) Register(input RegisterInput) (*userDomain.User, error) {
 	s.logger.Info("Registering new user", "email", input.Email)
+	s.logger.Info("Validating role for user registration", "role", input.Role)
+
+	role := userDomain.Role(input.Role)
+
+	s.logger.Info("Parsed role for user registration", "role", role)
+
+	if !role.IsValid() {
+		s.logger.Info("Invalid role provided for user registration", "role", input.Role)
+		return nil, userDomain.ErrInvalidRole
+	}
 
 	user := &userDomain.User{
-		ID:        s.repo.GenerateUserID(), // Implement a function to generate unique user IDs
+		ID:        s.repo.GenerateUserID(),
 		FirstName: input.FirstName,
 		LastName:  input.LastName,
 		Email:     input.Email,
+		Role:      role,
 	}
 
 	err := user.SetPassword(input.Password)
