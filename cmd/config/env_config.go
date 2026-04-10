@@ -15,6 +15,9 @@ const (
 	AwsAccessKeyEnvKey          EnvVarsKeys = "AWS_ACCESS_KEY_ID"
 	AwsSecretKeyEnvKey          EnvVarsKeys = "AWS_SECRET_ACCESS_KEY"
 	LocalstackEndpointUrlEnvKey EnvVarsKeys = "AWS_LOCALSTACK_ENDPOINT_URL"
+	JwtSecretKeyEnvKey          EnvVarsKeys = "JWT_SECRET_KEY"
+	JwtExpirationTimeEnvKey     EnvVarsKeys = "JWT_EXPIRATION_TIME"
+	AppIssuerEnvKey             EnvVarsKeys = "APP_ISSUER"
 	PostgresHostEnvKey          EnvVarsKeys = "POSTGRES_HOST"
 	PostgresPortEnvKey          EnvVarsKeys = "POSTGRES_PORT"
 	PostgresUserEnvKey          EnvVarsKeys = "POSTGRES_USER"
@@ -28,6 +31,9 @@ type Configs struct {
 	AwsAccessKey          string
 	AwsSecretKey          string
 	LocalstackEndpointUrl string
+	JwtSecretKey          string
+	JwtExpirationTime     string
+	AppIssuer             string
 	PostgresHost          string
 	PostgresPort          string
 	PostgresUser          string
@@ -45,6 +51,9 @@ func LoadConfigs() Configs {
 		AwsAccessKey:          getEnvVar(AwsAccessKeyEnvKey, string(EmptyString)),
 		AwsSecretKey:          getEnvVar(AwsSecretKeyEnvKey, string(EmptyString)),
 		LocalstackEndpointUrl: getEnvVar(LocalstackEndpointUrlEnvKey, string(EmptyString)),
+		JwtSecretKey:          getEnvVar(JwtSecretKeyEnvKey, string(EmptyString)),
+		JwtExpirationTime:     getEnvVar(JwtExpirationTimeEnvKey, string(EmptyString)),
+		AppIssuer:             getEnvVar(AppIssuerEnvKey, string(AppIssuer)),
 		PostgresHost:          getEnvVar(PostgresHostEnvKey, string(EmptyString)),
 		PostgresPort:          getEnvVar(PostgresPortEnvKey, string(EmptyString)),
 		PostgresUser:          getEnvVar(PostgresUserEnvKey, string(EmptyString)),
