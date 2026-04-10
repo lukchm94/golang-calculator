@@ -49,9 +49,6 @@ func main() {
 
 	addr = ":" + app.Config.Port
 
-	// ListenAndServe blocks until there is an error
-	err = http.ListenAndServe(addr, router)
-
 	if err != nil {
 		app.Logger.Error("Server failed to start", "error", err)
 		os.Exit(1)

@@ -19,8 +19,8 @@ type PostgresConfig struct {
 }
 
 func NewGormClient(config PostgresConfig, logger *slog.Logger) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		config.Host, config.User, config.Password, config.DbName, config.Port)
+	dsn := fmt.Sprintf("host=%s dbname=%s port=%s sslmode=disable",
+		config.Host, config.DbName, config.Port)
 
 	logger.Debug("Setting up Postgres DB with the following", "DSN", dsn)
 

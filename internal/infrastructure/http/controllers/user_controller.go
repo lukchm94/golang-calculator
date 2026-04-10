@@ -84,6 +84,11 @@ func (c *UserController) Login(ctx context.Context, r *http.Request) (*UserLogin
 	if err != nil {
 		return nil, err
 	}
+
+	if req.Password == nil || strings.TrimSpace(*req.Password) == "" {
+		return nil, reqErr.MissingFieldError{FieldName: "password"}
+	}
+
 	loginInput := userService.LoginInput{
 		Username: strings.TrimSpace(*req.Email),
 		Password: strings.TrimSpace(*req.Password),
@@ -138,7 +143,7 @@ func (c *UserController) handleLoginError(loginInput userService.LoginInput, err
 
 		return nil, reqErr.InvalidCredentialsError{Details: errDetail}
 	}
-	return nil, nil
+	return nil, err
 }
 
 func (c *UserController) validateRegisterReq(r *http.Request) (userService.RegisterInput, error) {

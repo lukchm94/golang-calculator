@@ -28,6 +28,8 @@ func (h *UserHandler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		h.logInvalidMethod(r)
 
 		w.WriteHeader(http.StatusMethodNotAllowed)
+
+		return
 	}
 
 	ctx := r.Context()
