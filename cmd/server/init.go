@@ -21,10 +21,11 @@ import (
 )
 
 type Services struct {
-	Logger   *slog.Logger
-	CalcRepo *dynamoRepo.CalculationsDynamoRepository
-	Config   config.Configs
-	UserRepo *postgresRepo.UserRepository
+	Logger    *slog.Logger
+	CalcRepo  *dynamoRepo.CalculationsDynamoRepository
+	Config    config.Configs
+	JwtConfig *config.JwtConfig
+	UserRepo  *postgresRepo.UserRepository
 }
 
 func NewApp() *Services {
@@ -35,6 +36,8 @@ func NewApp() *Services {
 	defer stop()
 
 	appConfig := config.LoadConfigs()
+
+	jwtConfig := buildJwtConfig(appConfig)
 
 	logger.Info("App configuration loaded", "config", appConfig)
 
@@ -68,10 +71,11 @@ func NewApp() *Services {
 	}
 
 	return &Services{
-		Logger:   logger,
-		CalcRepo: calcRepo,
-		Config:   appConfig,
-		UserRepo: userRepo,
+		Logger:    logger,
+		CalcRepo:  calcRepo,
+		Config:    appConfig,
+		UserRepo:  userRepo,
+		JwtConfig: jwtConfig,
 	}
 }
 
@@ -131,4 +135,18 @@ func buildPostgresClient(logger *slog.Logger, config config.Configs) (*gorm.DB, 
 	logger.Info("Initialised Postgres tables", "Tables", []string{postgresModels.UserPostgres{}.TableName()})
 
 	return db, nil
+}
+
+func buildJwtConfig(c config.Configs) *config.JwtConfig {
+	issuer := config.Issuer(c.AppIssuer)
+	if !issuer.IsValid() {
+		issuer = config.AppIssuer
+	}
+	expTime := config.FromStringToTimeDuration(c.JwtExpirationTime)
+
+	return &config.JwtConfig{
+		SecretKey:      c.JwtSecretKey,
+		Issuer:         issuer,
+		ExpirationTime: expTime,
+	}
 }

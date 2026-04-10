@@ -2,6 +2,7 @@ package application
 
 import (
 	domain "app/internal/domain/health"
+	userDomain "app/internal/domain/user"
 	"log/slog"
 )
 
@@ -20,5 +21,12 @@ func (s *HealthService) CheckHealth() domain.HealthStatus {
 	healthStatus := domain.HealthCheck()
 
 	s.logger.Info("Health check performed", "status", healthStatus.Status)
+	return healthStatus
+}
+
+func (s *HealthService) CheckAdminHealth(user *userDomain.User) domain.AdminHealthStatus {
+	healthStatus := domain.AdminHealthCheck(user)
+
+	s.logger.Info("Admin health check performed", "status", healthStatus.Status)
 	return healthStatus
 }

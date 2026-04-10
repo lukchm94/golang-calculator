@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"app/internal/application"
+	userService "app/internal/application/user"
 	domain "app/internal/domain/health"
 )
 
@@ -16,7 +17,8 @@ func TestHealthHandler(t *testing.T) {
 
 	// Create a new instance of the HealthService
 	healthService := application.NewHealthService(logger)
-	healthHandler := NewHealthHandler(logger, healthService)
+	userService := userService.NewUserService(logger, nil) // Pass nil for dependencies as they are not used in this test
+	healthHandler := NewHealthHandler(logger, healthService, userService)
 
 	// Create a mock HTTP request
 	req := httptest.NewRequest(http.MethodGet, "http://localhost/health", nil)

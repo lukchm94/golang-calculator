@@ -22,8 +22,6 @@ func NewGormClient(config PostgresConfig, logger *slog.Logger) (*gorm.DB, error)
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		config.Host, config.User, config.Password, config.DbName, config.Port)
 
-	logger.Debug("Setting up Postgres DB with the following", "DSN", dsn)
-
 	db, err := gorm.Open(postgres.Open(dsn))
 
 	if err != nil {

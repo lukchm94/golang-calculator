@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	authService "app/internal/application/auth"
 	userService "app/internal/application/user"
 	userDomain "app/internal/domain/user"
 	reqErr "app/internal/infrastructure/http/errors"
@@ -28,12 +29,13 @@ type LoginRequest struct {
 }
 
 type UserController struct {
-	logger  *slog.Logger
-	service *userService.UserService
+	logger     *slog.Logger
+	service    *userService.UserService
+	jwtService *authService.JwtAuthService
 }
 
-func NewUserController(logger *slog.Logger, service *userService.UserService) *UserController {
-	return &UserController{logger: logger, service: service}
+func NewUserController(logger *slog.Logger, service *userService.UserService, jwtService *authService.JwtAuthService) *UserController {
+	return &UserController{logger: logger, service: service, jwtService: jwtService}
 }
 
 func (c *UserController) Register(ctx context.Context, r *http.Request) (*userDomain.User, error) {
@@ -64,7 +66,7 @@ func (c *UserController) Register(ctx context.Context, r *http.Request) (*userDo
 	return result, nil
 }
 
-func (c *UserController) Login(ctx context.Context, r *http.Request) (*userDomain.User, error) {
+func (c *UserController) Login(ctx context.Context, r *http.Request) (*UserLoginResponse, error) {
 	c.logger.Info("Handling Login")
 
 	var req LoginRequest
@@ -82,6 +84,11 @@ func (c *UserController) Login(ctx context.Context, r *http.Request) (*userDomai
 	if err != nil {
 		return nil, err
 	}
+
+	if req.Password == nil || strings.TrimSpace(*req.Password) == "" {
+		return nil, reqErr.MissingFieldError{FieldName: "password"}
+	}
+
 	loginInput := userService.LoginInput{
 		Username: strings.TrimSpace(*req.Email),
 		Password: strings.TrimSpace(*req.Password),
@@ -90,27 +97,53 @@ func (c *UserController) Login(ctx context.Context, r *http.Request) (*userDomai
 	user, err := c.service.Login(loginInput)
 
 	if err != nil {
-		c.logger.Error("Failed to login user", "error", err)
-
-		if errors.Is(err, userDomain.ErrUserNotFound) {
-			var errDetail = fmt.Sprintf("username: %s", loginInput.Username)
-
-			return nil, reqErr.UserNotFoundError{Details: errDetail}
-		}
-
-		if errors.Is(err, userDomain.ErrInvalidCredentials) {
-			var errDetail = fmt.Sprintf("invalid credentials for username: %s", loginInput.Username)
-
-			return nil, reqErr.InvalidCredentialsError{Details: errDetail}
-		}
-
-		return nil, err
-
+		return c.handleLoginError(loginInput, err)
 	}
 
 	c.logger.Info("Successfully found user", "email", user.Email, "firstName", user.FirstName, "lastName", user.LastName)
 
-	return user, nil
+	return c.generateUserWithToken(user)
+}
+
+func (c *UserController) generateUserWithToken(user *userDomain.User) (*UserLoginResponse, error) {
+	resp := &UserLoginResponse{
+		ID:        user.ID,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+	}
+
+	if user.Role == userDomain.Admin {
+		token, err := c.jwtService.GenerateToken(authService.JwtLoginInput{
+			UserID: user.ID,
+			Role:   user.Role,
+		})
+		if err != nil {
+			return nil, err
+		}
+		resp.Token = token
+	}
+
+	return resp, nil
+}
+
+func (c *UserController) handleLoginError(loginInput userService.LoginInput, err error) (*UserLoginResponse, error) {
+	c.logger.Error("Failed to login user", "error", err)
+
+	if errors.Is(err, userDomain.ErrUserNotFound) {
+		var errDetail = fmt.Sprintf("username: %s", loginInput.Username)
+
+		return nil, reqErr.UserNotFoundError{Details: errDetail}
+	}
+
+	if errors.Is(err, userDomain.ErrInvalidCredentials) {
+		var errDetail = fmt.Sprintf("invalid credentials for username: %s", loginInput.Username)
+
+		return nil, reqErr.InvalidCredentialsError{Details: errDetail}
+	}
+	return nil, err
 }
 
 func (c *UserController) validateRegisterReq(r *http.Request) (userService.RegisterInput, error) {

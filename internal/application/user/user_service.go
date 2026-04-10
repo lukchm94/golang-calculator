@@ -74,6 +74,22 @@ func (s *UserService) Login(input LoginInput) (*userDomain.User, error) {
 	return user, nil
 }
 
+func (s *UserService) GetUserByID(id string) (*userDomain.User, error) {
+	user, err := s.repo.GetUserByID(id)
+
+	if err != nil {
+		s.logger.Error("Failed to get user by ID", "error", err)
+		return nil, err
+	}
+
+	if user == nil {
+		s.logger.Info("User not found with ID", "id", id)
+		return nil, userDomain.ErrUserNotFound
+	}
+
+	return user, nil
+}
+
 func (s *UserService) findWithUsername(username string) (*userDomain.User, error) {
 
 	if strings.Contains(username, utils.EmailCharacter) {
