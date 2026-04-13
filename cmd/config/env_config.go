@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -23,6 +23,7 @@ const (
 	PostgresUserEnvKey          EnvVarsKeys = "POSTGRES_USER"
 	PostgresPasswordEnvKey      EnvVarsKeys = "POSTGRES_PASSWORD"
 	PostgresDbEnvKey            EnvVarsKeys = "POSTGRES_DB"
+	Env                         EnvVarsKeys = "ENV"
 )
 
 type Configs struct {
@@ -39,12 +40,23 @@ type Configs struct {
 	PostgresUser          string
 	PostgresPassword      string
 	PostgresDb            string
+	Env                   string
+	AwsConfig             AwsConfig
 }
 
-func LoadConfigs() Configs {
+func LoadConfigs(logger *slog.Logger) Configs {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using system environment")
+		logger.Error("No .env file found, using system environment")
 	}
+
+	env := getEnvVar(Env, string(DefaultEnv))
+
+	if !ValidEnvironments(env).IsValid() {
+		logger.Error("Invalid environment: %s", "env", env)
+	}
+
+	awsConfig := GetAwsConfig(ValidEnvironments(env), logger)
+
 	return Configs{
 		Port:                  getEnvVar(PortEnvKey, string(DefaultPort)),
 		AwsDefaultRegion:      getEnvVar(AwsDefaultRegionEnvKey, string(EmptyString)),
@@ -59,6 +71,8 @@ func LoadConfigs() Configs {
 		PostgresUser:          getEnvVar(PostgresUserEnvKey, string(EmptyString)),
 		PostgresPassword:      getEnvVar(PostgresPasswordEnvKey, string(EmptyString)),
 		PostgresDb:            getEnvVar(PostgresDbEnvKey, string(EmptyString)),
+		Env:                   env,
+		AwsConfig:             awsConfig,
 	}
 }
 

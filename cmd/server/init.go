@@ -2,8 +2,9 @@ package main
 
 import (
 	"app/cmd/config"
-	dynamodbModels "app/internal/infrastructure/dynamodb/models"
 	dynamoRepo "app/internal/infrastructure/dynamodb/reposiotories"
+	eventBridge "app/internal/infrastructure/event_bridge"
+	eventBridgeRepo "app/internal/infrastructure/event_bridge/repo"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -17,15 +18,17 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"gorm.io/gorm"
 )
 
 type Services struct {
-	Logger    *slog.Logger
-	CalcRepo  *dynamoRepo.CalculationsDynamoRepository
-	Config    config.Configs
-	JwtConfig *config.JwtConfig
-	UserRepo  *postgresRepo.UserRepository
+	Logger         *slog.Logger
+	CalcRepo       *dynamoRepo.CalculationsDynamoRepository
+	Config         config.Configs
+	JwtConfig      *config.JwtConfig
+	UserRepo       *postgresRepo.UserRepository
+	EventPublisher *eventBridgeRepo.EventPublisher
 }
 
 func NewApp() *Services {
@@ -35,7 +38,7 @@ func NewApp() *Services {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	appConfig := config.LoadConfigs()
+	appConfig := config.LoadConfigs(logger)
 
 	jwtConfig := buildJwtConfig(appConfig)
 
@@ -44,13 +47,6 @@ func NewApp() *Services {
 	dbClient, err := buildDynamoDbClient(ctx, logger, appConfig)
 
 	if err != nil {
-		return nil
-	}
-
-	initDb := dynamodb.NewInitDynamoDb(logger, dbClient)
-
-	if err := initDb.EnsureTablesExist(ctx); err != nil {
-		logger.Error("Failed to ensure DynamoDB tables exist", "error", err)
 		return nil
 	}
 
@@ -63,49 +59,77 @@ func NewApp() *Services {
 
 	userRepo := postgresRepo.NewUserRepository(postgresClient, logger)
 
-	calcRepo, err := dynamoRepo.NewCalculationsDynamoRepository(dbClient, logger, "Calculations")
+	calcRepo, err := dynamoRepo.NewCalculationsDynamoRepository(dbClient, logger, appConfig.AwsConfig)
 
 	if err != nil {
 		logger.Error("Failed to initialize repository", "error", err)
 		os.Exit(1)
 	}
 
+	eventBridgeClient, err := buildEventBridgeClient(ctx, logger, appConfig)
+
+	if err != nil {
+		logger.Error("Failed to build EventBridge client", "error", err)
+		os.Exit(1)
+	}
+
+	eventPublisher, err := eventBridgeRepo.NewEventPublisher(eventBridgeClient, logger, appConfig.AwsConfig.EventBus)
+
+	if err != nil {
+		logger.Error("Failed to initialize EventBridge repository", "error", err)
+		os.Exit(1)
+	}
 	return &Services{
-		Logger:    logger,
-		CalcRepo:  calcRepo,
-		Config:    appConfig,
-		UserRepo:  userRepo,
-		JwtConfig: jwtConfig,
+		Logger:         logger,
+		CalcRepo:       calcRepo,
+		Config:         appConfig,
+		UserRepo:       userRepo,
+		JwtConfig:      jwtConfig,
+		EventPublisher: eventPublisher,
 	}
 }
 
-func getAwsConfig(ctx context.Context, logger *slog.Logger, config config.Configs) (aws.Config, error) {
-	cfg, err := dynamodb.LoadAWSConfig(ctx, config.AwsDefaultRegion)
+func buildEventBridgeClient(ctx context.Context, logger *slog.Logger, config config.Configs) (*eventbridge.Client, error) {
+	eventBridgeCfg, err := eventBridge.LoadEventBridgeConfig(ctx, config.AwsDefaultRegion)
+
 	if err != nil {
-		logger.Error("Failed to load AWS config", "error", err)
+		logger.Error("Failed to load EventBridge config", "error", err)
+		return nil, err
+	}
+
+	eventBridgeClient, err := eventBridge.NewEventBridgeClient(ctx, eventBridge.EventBridgeConfig{
+		Config:   eventBridgeCfg,
+		Endpoint: config.LocalstackEndpointUrl,
+	}, logger)
+
+	if err != nil {
+		logger.Error("Failed to create EventBridge client", "error", err)
+		return nil, err
+	}
+
+	return eventBridgeClient.Client, nil
+
+}
+
+func getDynamoDbCfg(ctx context.Context, logger *slog.Logger, config config.Configs) (aws.Config, error) {
+	cfg, err := dynamodb.LoadDynamoDbConfig(ctx, config.AwsDefaultRegion)
+	if err != nil {
+		logger.Error("Failed to load DynamoDB config", "error", err)
 	}
 
 	return cfg, nil
 }
 
 func buildDynamoDbClient(ctx context.Context, logger *slog.Logger, config config.Configs) (*dynamodb.DynamoDbClient, error) {
-	cfg, err := getAwsConfig(ctx, logger, config)
+	cfg, err := getDynamoDbCfg(ctx, logger, config)
 	if err != nil {
 		return nil, err
 	}
 
-	tables := dynamoTablesToRegister()
-	logger.Info("DynamoDB tables to register", "tables", tables)
-
 	return dynamodb.NewDynamoDBClient(ctx, dynamodb.DynamoDbConfig{
 		Config:   cfg,
 		Endpoint: config.LocalstackEndpointUrl,
-		Tables:   dynamoTablesToRegister(),
 	}, logger)
-}
-
-func dynamoTablesToRegister() []string {
-	return []string{dynamodbModels.TABLE_CALCULATIONS}
 }
 
 func buildPostgresClient(logger *slog.Logger, config config.Configs) (*gorm.DB, error) {

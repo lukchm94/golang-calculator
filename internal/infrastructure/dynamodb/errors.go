@@ -1,6 +1,9 @@
 package dynamodb
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type DynamoDbError error
 
@@ -23,5 +26,9 @@ type SavingRecordError struct {
 }
 
 func (e SavingRecordError) Error() string {
-	return "Failed to save record " + string(e.Record.(string)) + " to DynamoDB: " + e.Err.Error()
+	return fmt.Sprintf("failed to save record %v to DynamoDB: %v", e.Record, e.Err)
+}
+
+func (e SavingRecordError) Unwrap() error {
+	return e.Err
 }

@@ -1,3 +1,6 @@
+# Variables
+TF_DIR := terraform/environments/dev
+
 .PHONY: test coverage coverage-html build run help
 
 test:
@@ -22,6 +25,36 @@ localstack-up:
 
 localstack-down:
 	docker compose -f docker-compose.localStack.yml down
+
+# Infrastructure Commands
+infra-init:
+	cd $(TF_DIR) && terraform init
+
+infra-up:
+	cd $(TF_DIR) && terraform apply -auto-approve
+
+infra-down:
+	cd $(TF_DIR) && terraform destroy -auto-approve
+
+# The "Full Setup" Command
+# Starts docker, waits 2 seconds for LocalStack to breathe, then applies TF
+up:
+	docker compose -f docker-compose.localStack.yml up -d
+	@echo "Waiting for LocalStack to be ready..."
+	@sleep 20
+	cd $(TF_DIR) && terraform init && terraform apply -auto-approve
+
+down:
+	cd $(TF_DIR) && terraform destroy -auto-approve
+	docker compose -f docker-compose.localStack.yml down
+
+check-infra:
+	@echo "--- DynamoDB Tables ---"
+	@aws --endpoint-url=http://localhost:4566 dynamodb list-tables
+	@echo "\n--- Event Buses ---"
+	@aws --endpoint-url=http://localhost:4566 events list-event-buses
+	@echo "\n--- SQS Queues ---"
+	@aws --endpoint-url=http://localhost:4566 sqs list-queues
 
 help:
 	@echo "Available commands:"
