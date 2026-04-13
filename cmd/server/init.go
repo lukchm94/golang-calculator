@@ -2,7 +2,6 @@ package main
 
 import (
 	"app/cmd/config"
-	dynamodbModels "app/internal/infrastructure/dynamodb/models"
 	dynamoRepo "app/internal/infrastructure/dynamodb/reposiotories"
 	"log/slog"
 	"os"
@@ -47,13 +46,6 @@ func NewApp() *Services {
 		return nil
 	}
 
-	initDb := dynamodb.NewInitDynamoDb(logger, dbClient)
-
-	if err := initDb.EnsureTablesExist(ctx); err != nil {
-		logger.Error("Failed to ensure DynamoDB tables exist", "error", err)
-		return nil
-	}
-
 	postgresClient, err := buildPostgresClient(logger, appConfig)
 
 	if err != nil {
@@ -63,7 +55,7 @@ func NewApp() *Services {
 
 	userRepo := postgresRepo.NewUserRepository(postgresClient, logger)
 
-	calcRepo, err := dynamoRepo.NewCalculationsDynamoRepository(dbClient, logger, "Calculations")
+	calcRepo, err := dynamoRepo.NewCalculationsDynamoRepository(dbClient, logger, "dev-calculations")
 
 	if err != nil {
 		logger.Error("Failed to initialize repository", "error", err)
@@ -94,18 +86,10 @@ func buildDynamoDbClient(ctx context.Context, logger *slog.Logger, config config
 		return nil, err
 	}
 
-	tables := dynamoTablesToRegister()
-	logger.Info("DynamoDB tables to register", "tables", tables)
-
 	return dynamodb.NewDynamoDBClient(ctx, dynamodb.DynamoDbConfig{
 		Config:   cfg,
 		Endpoint: config.LocalstackEndpointUrl,
-		Tables:   dynamoTablesToRegister(),
 	}, logger)
-}
-
-func dynamoTablesToRegister() []string {
-	return []string{dynamodbModels.TABLE_CALCULATIONS}
 }
 
 func buildPostgresClient(logger *slog.Logger, config config.Configs) (*gorm.DB, error) {

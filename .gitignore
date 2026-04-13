@@ -38,3 +38,16 @@ bin/
 .vscode/
 *.swp
 *.swo
+
+# Terraform state files
+*.tfstate
+*.tfstate.backup
+
+# Terraform local plugin directory (the stuff downloaded by terraform init)
+.terraform/
+
+# Terraform lock file (optional, but usually ignored in local-only projects)
+.terraform.lock.hcl
+
+# Crash logs
+crash.log

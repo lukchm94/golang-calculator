@@ -15,22 +15,15 @@ import (
 type CalculationsDynamoRepository struct {
 	logger    *slog.Logger
 	db        *dynamodb.DynamoDbClient
-	tableName dynamodb.Table
+	tableName string
 }
 
 func NewCalculationsDynamoRepository(db *dynamodb.DynamoDbClient, logger *slog.Logger, tableName string) (*CalculationsDynamoRepository, error) {
-	validTableName, err := db.Tables.Validate(tableName)
-
-	if err != nil {
-		logger.Error("Failed to validate table name", "error", err)
-
-		return nil, dynamodb.TableNotFoundError{TableName: tableName}
-	}
 
 	return &CalculationsDynamoRepository{
 		logger:    logger,
 		db:        db,
-		tableName: validTableName,
+		tableName: tableName,
 	}, nil
 }
 
@@ -49,7 +42,9 @@ func (r *CalculationsDynamoRepository) Save(ctx context.Context, input calculato
 		input.SessionId,
 	)
 
-	err = r.saveRecord(ctx, r.tableName.Name, record)
+	r.logger.Debug("Saving calculation record", "record", record)
+
+	err = r.saveRecord(ctx, r.tableName, record)
 
 	if err != nil {
 		r.logger.Error("Failed to save calculation record to DynamoDB", "error", err)
@@ -61,6 +56,9 @@ func (r *CalculationsDynamoRepository) Save(ctx context.Context, input calculato
 
 func (r *CalculationsDynamoRepository) saveRecord(ctx context.Context, tableName string, record dynamodbModels.CalculationDynamoRecord) error {
 	item, err := attributevalue.MarshalMap(record)
+
+	r.logger.Debug("Marshalling record for DynamoDB", "record", record)
+
 	if err != nil {
 		return dynamodb.SavingRecordError{Err: err, Record: record}
 	}

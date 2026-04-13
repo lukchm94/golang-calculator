@@ -12,13 +12,11 @@ import (
 type DynamoDbConfig struct {
 	Config   aws.Config
 	Endpoint string
-	Tables   []string
 }
 
 type DynamoDbClient struct {
 	logger *slog.Logger
 	Client *dynamodb.Client
-	Tables *DynamoTables
 }
 
 func NewDynamoDBClient(context context.Context, input DynamoDbConfig, logger *slog.Logger) (*DynamoDbClient, error) {
@@ -28,17 +26,9 @@ func NewDynamoDBClient(context context.Context, input DynamoDbConfig, logger *sl
 		o.BaseEndpoint = aws.String(input.Endpoint)
 	})
 
-	tables, err := NewDynamoTables(input.Tables)
-
-	if err != nil {
-		logger.Error("Failed to create DynamoDB tables", "error", err)
-		return nil, ErrTablesCreation
-	}
-
 	return &DynamoDbClient{
 		logger: logger,
 		Client: sdkClient,
-		Tables: tables,
 	}, nil
 }
 
