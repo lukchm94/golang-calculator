@@ -41,7 +41,7 @@ infra-down:
 up:
 	docker compose -f docker-compose.localStack.yml up -d
 	@echo "Waiting for LocalStack to be ready..."
-	@sleep 2
+	@sleep 20
 	cd $(TF_DIR) && terraform init && terraform apply -auto-approve
 
 down:

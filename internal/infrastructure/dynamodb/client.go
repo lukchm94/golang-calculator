@@ -32,7 +32,7 @@ func NewDynamoDBClient(context context.Context, input DynamoDbConfig, logger *sl
 	}, nil
 }
 
-func LoadAWSConfig(ctx context.Context, region string) (aws.Config, error) {
+func LoadDynamoDbConfig(ctx context.Context, region string) (aws.Config, error) {
 	return config.LoadDefaultConfig(ctx,
 		config.WithRegion(region),
 	)

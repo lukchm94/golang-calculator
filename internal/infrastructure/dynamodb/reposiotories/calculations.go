@@ -1,6 +1,7 @@
 package dynamoRepo
 
 import (
+	"app/cmd/config"
 	calculatorApplication "app/internal/application/calculator"
 	calculatorDomain "app/internal/domain/calculator"
 	dynamodb "app/internal/infrastructure/dynamodb"
@@ -18,7 +19,15 @@ type CalculationsDynamoRepository struct {
 	tableName string
 }
 
-func NewCalculationsDynamoRepository(db *dynamodb.DynamoDbClient, logger *slog.Logger, tableName string) (*CalculationsDynamoRepository, error) {
+func NewCalculationsDynamoRepository(
+	db *dynamodb.DynamoDbClient,
+	logger *slog.Logger,
+	awsConfig config.AwsConfig,
+) (*CalculationsDynamoRepository, error) {
+
+	tableName := string(awsConfig.Prefix) + dynamodb.CalculationsTable
+
+	logger.Info("Initializing CalculationsDynamoRepository", "tableName", tableName)
 
 	return &CalculationsDynamoRepository{
 		logger:    logger,

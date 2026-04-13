@@ -34,7 +34,7 @@ func NewApp() *Services {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	appConfig := config.LoadConfigs()
+	appConfig := config.LoadConfigs(logger)
 
 	jwtConfig := buildJwtConfig(appConfig)
 
@@ -55,7 +55,7 @@ func NewApp() *Services {
 
 	userRepo := postgresRepo.NewUserRepository(postgresClient, logger)
 
-	calcRepo, err := dynamoRepo.NewCalculationsDynamoRepository(dbClient, logger, "dev-calculations")
+	calcRepo, err := dynamoRepo.NewCalculationsDynamoRepository(dbClient, logger, appConfig.AwsConfig)
 
 	if err != nil {
 		logger.Error("Failed to initialize repository", "error", err)
@@ -71,17 +71,17 @@ func NewApp() *Services {
 	}
 }
 
-func getAwsConfig(ctx context.Context, logger *slog.Logger, config config.Configs) (aws.Config, error) {
-	cfg, err := dynamodb.LoadAWSConfig(ctx, config.AwsDefaultRegion)
+func getDynamoDbCfg(ctx context.Context, logger *slog.Logger, config config.Configs) (aws.Config, error) {
+	cfg, err := dynamodb.LoadDynamoDbConfig(ctx, config.AwsDefaultRegion)
 	if err != nil {
-		logger.Error("Failed to load AWS config", "error", err)
+		logger.Error("Failed to load DynamoDB config", "error", err)
 	}
 
 	return cfg, nil
 }
 
 func buildDynamoDbClient(ctx context.Context, logger *slog.Logger, config config.Configs) (*dynamodb.DynamoDbClient, error) {
-	cfg, err := getAwsConfig(ctx, logger, config)
+	cfg, err := getDynamoDbCfg(ctx, logger, config)
 	if err != nil {
 		return nil, err
 	}
