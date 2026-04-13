@@ -17,7 +17,7 @@ func TestHealthHandler(t *testing.T) {
 
 	// Create a new instance of the HealthService
 	healthService := application.NewHealthService(logger)
-	userService := userService.NewUserService(logger, nil) // Pass nil for dependencies as they are not used in this test
+	userService := userService.NewUserService(logger, nil, nil, nil) // Pass nil for dependencies as they are not used in this test
 	healthHandler := NewHealthHandler(logger, healthService, userService)
 
 	// Create a mock HTTP request

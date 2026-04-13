@@ -13,7 +13,7 @@ const (
 type EventBridge string
 
 const (
-	CalculatorEvents EventBridge = "calculator-events"
+	CalculatorEvents EventBridge = "calculator-event-bus"
 )
 
 type EventBridgeArnPrefix string

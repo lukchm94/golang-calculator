@@ -3,6 +3,8 @@ package main
 import (
 	"app/cmd/config"
 	dynamoRepo "app/internal/infrastructure/dynamodb/reposiotories"
+	eventBridge "app/internal/infrastructure/event_bridge"
+	eventBridgeRepo "app/internal/infrastructure/event_bridge/repo"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -16,15 +18,17 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"gorm.io/gorm"
 )
 
 type Services struct {
-	Logger    *slog.Logger
-	CalcRepo  *dynamoRepo.CalculationsDynamoRepository
-	Config    config.Configs
-	JwtConfig *config.JwtConfig
-	UserRepo  *postgresRepo.UserRepository
+	Logger         *slog.Logger
+	CalcRepo       *dynamoRepo.CalculationsDynamoRepository
+	Config         config.Configs
+	JwtConfig      *config.JwtConfig
+	UserRepo       *postgresRepo.UserRepository
+	EventPublisher *eventBridgeRepo.EventPublisher
 }
 
 func NewApp() *Services {
@@ -62,13 +66,49 @@ func NewApp() *Services {
 		os.Exit(1)
 	}
 
-	return &Services{
-		Logger:    logger,
-		CalcRepo:  calcRepo,
-		Config:    appConfig,
-		UserRepo:  userRepo,
-		JwtConfig: jwtConfig,
+	eventBridgeClient, err := buildEventBridgeClient(ctx, logger, appConfig)
+
+	if err != nil {
+		logger.Error("Failed to build EventBridge client", "error", err)
+		os.Exit(1)
 	}
+
+	eventPublisher, err := eventBridgeRepo.NewEventPublisher(eventBridgeClient, logger, appConfig.AwsConfig.EventBus)
+
+	if err != nil {
+		logger.Error("Failed to initialize EventBridge repository", "error", err)
+		os.Exit(1)
+	}
+	return &Services{
+		Logger:         logger,
+		CalcRepo:       calcRepo,
+		Config:         appConfig,
+		UserRepo:       userRepo,
+		JwtConfig:      jwtConfig,
+		EventPublisher: eventPublisher,
+	}
+}
+
+func buildEventBridgeClient(ctx context.Context, logger *slog.Logger, config config.Configs) (*eventbridge.Client, error) {
+	eventBridgeCfg, err := eventBridge.LoadEventBridgeConfig(ctx, config.AwsDefaultRegion)
+
+	if err != nil {
+		logger.Error("Failed to load EventBridge config", "error", err)
+		return nil, err
+	}
+
+	eventBridgeClient, err := eventBridge.NewEventBridgeClient(ctx, eventBridge.EventBridgeConfig{
+		Config:   eventBridgeCfg,
+		Endpoint: config.LocalstackEndpointUrl,
+	}, logger)
+
+	if err != nil {
+		logger.Error("Failed to create EventBridge client", "error", err)
+		return nil, err
+	}
+
+	return eventBridgeClient.Client, nil
+
 }
 
 func getDynamoDbCfg(ctx context.Context, logger *slog.Logger, config config.Configs) (aws.Config, error) {

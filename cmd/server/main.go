@@ -20,7 +20,8 @@ func main() {
 	jwtService := authService.NewJwtAuthService(app.Logger, app.JwtConfig)
 	healthService := application.NewHealthService(app.Logger)
 	calculatorService := calculatorApplication.NewCalculatorService(app.Logger, app.CalcRepo)
-	userService := userService.NewUserService(app.Logger, app.UserRepo)
+	userMapper := userService.NewUserMapper(app.Logger)
+	userService := userService.NewUserService(app.Logger, app.UserRepo, app.EventPublisher, userMapper)
 	userController := controllers.NewUserController(app.Logger, userService, jwtService)
 
 	// Controllers initialization

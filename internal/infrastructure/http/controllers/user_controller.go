@@ -94,7 +94,7 @@ func (c *UserController) Login(ctx context.Context, r *http.Request) (*UserLogin
 		Password: strings.TrimSpace(*req.Password),
 	}
 
-	user, err := c.service.Login(loginInput)
+	user, err := c.service.Login(ctx, loginInput)
 
 	if err != nil {
 		return c.handleLoginError(loginInput, err)
@@ -123,10 +123,22 @@ func (c *UserController) generateUserWithToken(user *userDomain.User) (*UserLogi
 		if err != nil {
 			return nil, err
 		}
-		resp.Token = token
+		resp.Token = c.maskToken(token)
+		c.logger.Info("Generated JWT token for user", "email", user.Email, "maskedToken", resp.Token)
 	}
 
 	return resp, nil
+}
+func (c *UserController) maskToken(token string) string {
+	if len(token) <= 10 {
+		c.logger.Warn("Token length is too short to mask properly", "tokenLength", len(token))
+		return "****"
+	}
+
+	masked := token[:5] + "****" + token[len(token)-5:]
+	c.logger.Debug("Masked token for logging", "maskedToken", masked)
+
+	return masked
 }
 
 func (c *UserController) handleLoginError(loginInput userService.LoginInput, err error) (*UserLoginResponse, error) {

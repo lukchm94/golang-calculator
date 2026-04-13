@@ -1,21 +1,33 @@
 package userService
 
 import (
+	"app/internal/domain/appEvent"
 	userDomain "app/internal/domain/user"
 	"app/internal/utils"
+	"context"
 	"log/slog"
 	"strings"
+	"time"
 )
 
 type UserService struct {
-	logger *slog.Logger
-	repo   userDomain.UserRepository
+	logger    *slog.Logger
+	repo      userDomain.UserRepository
+	publisher appEvent.EventPublisher
+	mapper    *UserMapper
 }
 
-func NewUserService(logger *slog.Logger, repo userDomain.UserRepository) *UserService {
+func NewUserService(
+	logger *slog.Logger,
+	repo userDomain.UserRepository,
+	publisher appEvent.EventPublisher,
+	mapper *UserMapper,
+) *UserService {
 	return &UserService{
-		logger: logger,
-		repo:   repo,
+		logger:    logger,
+		repo:      repo,
+		publisher: publisher,
+		mapper:    mapper,
 	}
 }
 
@@ -55,7 +67,7 @@ func (s *UserService) Register(input RegisterInput) (*userDomain.User, error) {
 	return user, nil
 }
 
-func (s *UserService) Login(input LoginInput) (*userDomain.User, error) {
+func (s *UserService) Login(ctx context.Context, input LoginInput) (*userDomain.User, error) {
 	user, err := s.findWithUsername(input.Username)
 
 	userVerificationError := s.verifyUser(user, err)
@@ -69,6 +81,14 @@ func (s *UserService) Login(input LoginInput) (*userDomain.User, error) {
 	if err != nil {
 		s.logger.Info("Invalid password for user", "username", input.Username)
 		return nil, userDomain.ErrInvalidCredentials
+	}
+
+	loginEvent := s.mapper.FromUserDomainToLoginEvent(user, time.Now())
+	publishingEvent := s.mapper.FromLoginEventToPublishingEvent(loginEvent)
+
+	err = s.publisher.PublishEvent(ctx, publishingEvent)
+	if err != nil {
+		s.logger.Error("Failed to publish user login event", "error", err)
 	}
 
 	return user, nil
