@@ -7,5 +7,5 @@ type EventPublisher interface {
 }
 
 type SqsListener interface {
-	Listen()
+	Listen(ctx context.Context) error
 }

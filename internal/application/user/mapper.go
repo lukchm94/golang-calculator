@@ -4,6 +4,7 @@ import (
 	userEvents "app/internal/application/user/events"
 	"app/internal/domain/appEvent"
 	userDomain "app/internal/domain/user"
+	"encoding/json"
 	"log/slog"
 	"time"
 )
@@ -38,4 +39,18 @@ func (m *UserMapper) FromLoginEventToPublishingEvent(event *userEvents.LoginEven
 	m.logger.Debug("Mapped LoginEvent to PublishingEvent", "publishingEvent", publishingEvent)
 
 	return publishingEvent
+}
+
+func (m *UserMapper) FromPublishingEventToLoginEvent(event appEvent.PublishingEvent) (*userEvents.LoginEvent, error) {
+	m.logger.Debug("Mapping PublishingEvent to LoginEvent", "publishingEvent", event)
+
+	var loginEvent userEvents.LoginEvent
+	err := json.Unmarshal([]byte(event.Detail), &loginEvent)
+
+	if err != nil {
+		m.logger.Error("Failed to unmarshal PublishingEvent detail into LoginEvent", "error", err, "detail", event.Detail)
+		return nil, err
+	}
+
+	return &loginEvent, nil
 }

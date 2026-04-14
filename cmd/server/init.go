@@ -29,6 +29,8 @@ type Services struct {
 	JwtConfig      *config.JwtConfig
 	UserRepo       *postgresRepo.UserRepository
 	EventPublisher *eventBridgeRepo.EventPublisher
+	Context        *context.Context
+	Stop           context.CancelFunc
 }
 
 func NewApp() *Services {
@@ -36,7 +38,6 @@ func NewApp() *Services {
 		Level: slog.LevelDebug,
 	}))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	appConfig := config.LoadConfigs(logger)
 
@@ -86,6 +87,8 @@ func NewApp() *Services {
 		UserRepo:       userRepo,
 		JwtConfig:      jwtConfig,
 		EventPublisher: eventPublisher,
+		Context:        &ctx,
+		Stop:           stop,
 	}
 }
 

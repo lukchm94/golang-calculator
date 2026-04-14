@@ -9,30 +9,30 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
-type SQSConfig struct {
+type SqsConfig struct {
 	Config   aws.Config
 	Endpoint string
 }
 
-type SQSClient struct {
+type SqsClient struct {
 	logger *slog.Logger
 	Client *sqs.Client
 }
 
-func NewSQSClient(context context.Context, input SQSConfig, logger *slog.Logger) (*SQSClient, error) {
+func NewSqsClient(context context.Context, input SqsConfig, logger *slog.Logger) (*SqsClient, error) {
 	logger.Info("Creating SQS client", "endpoint", input.Endpoint)
 
 	sdkClient := sqs.NewFromConfig(input.Config, func(o *sqs.Options) {
 		o.BaseEndpoint = aws.String(input.Endpoint)
 	})
 
-	return &SQSClient{
+	return &SqsClient{
 		logger: logger,
 		Client: sdkClient,
 	}, nil
 }
 
-func LoadSQSConfig(ctx context.Context, region string) (aws.Config, error) {
+func LoadSqsConfig(ctx context.Context, region string) (aws.Config, error) {
 	return config.LoadDefaultConfig(ctx,
 		config.WithRegion(region),
 	)
